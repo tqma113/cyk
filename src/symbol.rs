@@ -1,6 +1,9 @@
 use std::fmt;
+use std::sync::Mutex;
 
-use rustc_hash::{FxHashMap};
+use rustc_hash::FxHashMap;
+
+use lazy_static::lazy_static;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Symbol(usize);
@@ -18,9 +21,7 @@ impl Symbol {
     /// Convert to a `SymbolStr`. This is a slowish operation because it
     /// requires locking the symbol interner.
     pub fn as_str(self) -> &'static str {
-        with_interner(|interner| unsafe {
-            std::mem::transmute::<&str, &str>(interner.get(self))
-        })
+        with_interner(|interner| unsafe { std::mem::transmute::<&str, &str>(interner.get(self)) })
     }
 
     pub fn as_u32(self) -> u32 {
@@ -47,11 +48,10 @@ pub struct Interner {
 }
 
 impl Interner {
-    fn prefill(init: &[&'static str]) -> Self {
-        Interner {
-            strings: init.into(),
-            names: init.iter().copied().zip((0..).map(Symbol::new)).collect(),
-            ..Default::default()
+    pub fn exist(&mut self, string: &str) -> bool {
+        match self.names.get(string) {
+            Some(_) => true,
+            None => false,
         }
     }
 
@@ -85,17 +85,15 @@ pub struct SessionGlobals {
 impl SessionGlobals {
     pub fn new() -> SessionGlobals {
         SessionGlobals {
-            symbol_interner: std::cell::RefCell::new(Interner::default())
+            symbol_interner: std::cell::RefCell::new(Interner::default()),
         }
     }
 }
 
-scoped_tls::scoped_thread_local!(pub static SESSION_GLOBALS: SessionGlobals);
+lazy_static! {
+    static ref SESSION_GLOBALS: Mutex<SessionGlobals> = Mutex::new(SessionGlobals::new());
+}
 
 fn with_interner<T, F: FnOnce(&mut Interner) -> T>(f: F) -> T {
-    SESSION_GLOBALS.with(|session_globals| f(&mut *session_globals.symbol_interner.borrow_mut()))
-}
-pub fn with_session_globals(f: impl FnOnce()) {
-    let session_globals = SessionGlobals::new();
-    SESSION_GLOBALS.set(&session_globals, f);
+    f(&mut *SESSION_GLOBALS.lock().unwrap().symbol_interner.borrow_mut())
 }
