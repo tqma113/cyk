@@ -5,18 +5,16 @@ use cyk::cnf_grammar;
 fn main() {
     let grammar = cnf_grammar! {
         Start("Number");
-        NonTerminal[
+        NonTerminals[
             "Number", "N1", "Integer", "Fraction",
             "T1", "Scale", "N2", "T2", "Digit", "Sign"
         ];
-        Terminal[
+        Terminals[
             "0", "1", "2", "3", "4", "5", "6",
             "7", "8", "9", ".", "e", "+", "-"
         ];
         Rules [
             "Number" => [
-                ["0"], ["1"], ["2"], ["3"], ["4"], ["5"],
-                ["6"], ["7"], ["8"], ["9"],
                 ["Integer", "Digit"],
                 ["N1", "Scale"],
                 ["Integer", "Fraction"]
@@ -25,15 +23,10 @@ fn main() {
                 ["Integer", "Fraction"]
             ],
             "Integer" => [
-                ["0"], ["1"], ["2"], ["3"], ["4"], ["5"],
-                ["6"], ["7"], ["8"], ["9"],
                 ["Integer", "Digit"]
             ],
             "Fraction" => [
                 ["T1", "Integer"]
-            ],
-            "T1" => [
-                ["."]
             ],
             "Scale" => [
                 ["N2", "Integer"]
@@ -41,15 +34,28 @@ fn main() {
             "N2" => [
                 ["T2", "Sign"]
             ],
+        ];
+        TerminalRules [
+            "Number" => [
+                "0", "1", "2","3", "4", "5",
+                "6", "7", "8", "9",
+            ],
+            "Integer" => [
+                "0", "1", "2","3", "4", "5",
+                "6", "7", "8", "9",
+            ],
+            "T1" => [
+                "."
+            ],
             "T2" => [
-                ["e"]
+                "e"
             ],
             "Digit" => [
-                ["0"], ["1"], ["2"], ["3"], ["4"], ["5"],
-                ["6"], ["7"], ["8"], ["9"],
+                "0", "1", "2","3", "4", "5",
+                "6", "7", "8", "9",
             ],
             "Sign" => [
-                ["+"], ["-"]
+                "+", "-"
             ]
         ]
     };

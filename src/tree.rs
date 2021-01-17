@@ -67,7 +67,7 @@ impl Eq for Span {}
 pub struct Node {
     kind: Symbol,
     span: Span,
-    children: Vec<Node>
+    children: Vec<Node>,
 }
 
 impl PartialEq for Node {
@@ -77,15 +77,11 @@ impl PartialEq for Node {
 }
 
 impl Node {
-    pub fn new(
-        kind: Symbol,
-        span: Span,
-        children: Vec<Node>
-    ) -> Self {
+    pub fn new(kind: Symbol, span: Span, children: Vec<Node>) -> Self {
         Node {
             kind,
             span,
-            children
+            children,
         }
     }
 
@@ -192,20 +188,15 @@ impl Cell {
     }
 
     pub fn has(&self, symbol: Symbol) -> Option<&Node> {
-        self.0.iter().find(|node| { node.kind.eq(&symbol) })
+        self.0.iter().find(|node| node.kind.eq(&symbol))
     }
 
     pub fn from_char(c: char, start: usize) -> Cell {
         let span = Span::new(start, 1);
         match Symbol::from_char(c) {
-            Some(symbol) => {
-                cell![Node::new(symbol, span, vec![]); span]
-            },
+            Some(symbol) => cell![Node::new(symbol, span, vec![]); span],
             None => {
-                assert!(
-                    false,
-                    format!("Unknown char:{} at {}", c, start)
-                );
+                assert!(false, format!("Unknown char:{} at {}", c, start));
                 cell![;span]
             }
         }

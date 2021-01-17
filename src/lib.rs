@@ -1,12 +1,12 @@
 mod cnf;
+mod error;
 mod symbol;
 mod tree;
-mod error;
 
 pub use cnf::*;
+pub use error::*;
 pub use symbol::*;
 pub use tree::*;
-pub use error::*;
 
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -68,15 +68,10 @@ impl<'a, G: Grammar + Debug + Clone> StringReader<'a, G> {
         }
 
         match self.get_cell(Span::new(0, src_len)) {
-            Some(cell) => {
-                match cell.clone().has(self.grammar.clone().start_symbol()) {
-                    Some(node) => Ok(node.clone()),
-                    None => {
-                        println!("span: {:?}", cell);
-                        Err(self.unknowns.clone())
-                    },
-                }
-            }
+            Some(cell) => match cell.clone().has(self.grammar.clone().start_symbol()) {
+                Some(node) => Ok(node.clone()),
+                None => Err(self.unknowns.clone()),
+            },
             None => Err(self.unknowns.clone()),
         }
     }
@@ -98,7 +93,7 @@ impl<'a, G: Grammar + Debug + Clone> StringReader<'a, G> {
                 for len in 1..span.len() {
                     let base_span = Span::new(span.start(), len);
                     if let Some(base_cell) = self.get_cell(base_span) {
-                        if let Some(base_span) =  base_cell.clone().span() {
+                        if let Some(base_span) = base_cell.clone().span() {
                             if let Some(rest_span) = rest_span(base_span, span.len()) {
                                 if let Some(rest_cell) = self.get_cell(rest_span) {
                                     let next_cell = self.clone().derive(span, base_cell, rest_cell);
@@ -126,11 +121,7 @@ impl<'a, G: Grammar + Debug + Clone> StringReader<'a, G> {
             Some(symbol) => {
                 if let Some(symbols) = self.grammar.clone().derive_single(symbol) {
                     for symbol in symbols {
-                        next_cell.push_nodes(Node::new(
-                            symbol,
-                            span,
-                            vec![]
-                        ))
+                        next_cell.push_nodes(Node::new(symbol, span, vec![]))
                     }
                 }
             }
@@ -147,14 +138,16 @@ impl<'a, G: Grammar + Debug + Clone> StringReader<'a, G> {
             for suffix in &suffix.0 {
                 if let Some(symbols) = self.grammar.clone().follow(cur.clone().kind()) {
                     if symbols.iter().any(|&sym| sym.eq(&suffix.clone().kind())) {
-                        // println!("pre derive");
-                        if let Some(symbols) = self.grammar.clone().derive(cur.clone().kind(), suffix.clone().kind()) {
-                            // println!("derive result:{:?}", symbols);
+                        if let Some(symbols) = self
+                            .grammar
+                            .clone()
+                            .derive(cur.clone().kind(), suffix.clone().kind())
+                        {
                             for symbol in symbols {
                                 next_cell.push_nodes(Node::new(
                                     symbol,
                                     span,
-                                    vec![cur.clone(), suffix.clone()]
+                                    vec![cur.clone(), suffix.clone()],
                                 ))
                             }
                         }

@@ -3,7 +3,7 @@ use super::Grammar;
 
 #[macro_export]
 macro_rules! cnf_grammar {
-    (Start($start:literal);NonTerminal[$($non_terminal:literal),+ $(,)?];Terminal[$($terminal:literal),+ $(,)?];Rules[$($left:literal => [$([$($right:literal),+ $(,)?]),+ $(,)?]),+ $(,)?]) => {
+    (Start($start:literal);NonTerminals[$($non_terminal:literal),+ $(,)?];Terminals[$($terminal:literal),+ $(,)?];Rules[$($left:literal => [$([$first:literal,$second:literal]),+ $(,)?]),+ $(,)?];TerminalRules[$($t_left:literal => [$($t_right:literal),+ $(,)?]),+ $(,)?]) => {
         {
             let start_terminal = $crate::Symbol::intern($start);
 
@@ -24,42 +24,46 @@ macro_rules! cnf_grammar {
                     non_terminals.iter().any(|&symbol| symbol == left),
                     format!("The rule's left part: {} is in non-terminals", left)
                 );
-                let mut right: Vec<Vec<$crate::Symbol>> = vec![];
+                let mut right: Vec<$crate::RuleRight> = vec![];
                 $(
-                    let mut branch: Vec<$crate::Symbol> = vec![];
-                    $(
-                        let symbol = $crate::Symbol::intern($right);
-                        assert!(
-                            non_terminals.iter().any(|&sym| sym == symbol) || terminals.iter().any(|&sym| sym == symbol),
-                            format!("The rule's right part: {} is in terminals or non-terminals", symbol)
-                        );
-                        branch.push(symbol);
-                    )*
-                    assert!(
-                        branch.len() == 2 || branch.len() == 1,
-                        "The length of a right-hand side in a rule should be 1 or 2 in CNF"
-                    );
-                    right.push(branch);
+                    right.push($crate::RuleRight::new($crate::Symbol::intern($first), $crate::Symbol::intern($second)));
                 )*
-                rules.insert_by_symbol(left, right);
+                rules.insert(left, right);
             )*
 
+            let mut terminal_rules = $crate::TerminalRules::new();
+            $(
+                let left = $crate::Symbol::intern($t_left);
+                let mut right: Vec<$crate::Symbol> = vec![];
+                $(
+                    right.push($crate::Symbol::intern($t_right));
+                )*
+                terminal_rules.insert(left, right);
+            )*
 
-
-            $crate::CNF::new(start_terminal, non_terminals, terminals, rules)
+            $crate::CNF::new(start_terminal, non_terminals, terminals, rules, terminal_rules)
         }
     };
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct RuleRight(Symbol, Symbol);
+
+impl RuleRight {
+    pub fn new(left: Symbol, right: Symbol) -> Self {
+        RuleRight(left, right)
+    }
+}
+
 #[derive(Debug, Clone)]
-struct Rule(Symbol, Vec<Vec<Symbol>>);
+pub struct Rule(Symbol, Vec<RuleRight>);
 
 impl Rule {
     pub fn first(self) -> Option<Vec<Symbol>> {
         let mut result: Vec<Symbol> = vec![];
 
         for branch in self.1 {
-            result.push(*branch.first().unwrap())
+            result.push(branch.0)
         }
 
         if result.len() > 0 {
@@ -73,8 +77,8 @@ impl Rule {
         let mut result: Vec<Symbol> = vec![];
 
         for branch in self.1 {
-            if branch.len() == 2 && *branch.first().unwrap() == symbol {
-                result.push(*branch.get(1).unwrap())
+            if branch.0 == symbol {
+                result.push(branch.1)
             }
         }
 
@@ -83,6 +87,10 @@ impl Rule {
         } else {
             None
         }
+    }
+
+    pub fn start(self) -> Symbol {
+        self.0
     }
 
     pub fn start_with(self, symbol: Symbol) -> bool {
@@ -98,18 +106,8 @@ impl Rule {
                     None
                 }
             }
-            None => None
+            None => None,
         }
-    }
-
-    fn derive_single(self, base: Symbol) -> Option<Symbol> {
-        for symbols in self.1 {
-            if symbols.len() == 1 && symbols.first().unwrap().eq(&base) {
-                return Some(self.0)
-            }
-        }
-
-        None
     }
 }
 
@@ -121,22 +119,8 @@ impl Rules {
         let rules: Vec<Rule> = vec![];
         Rules(rules)
     }
-    pub fn insert(&mut self, left: &str, right: Vec<Vec<&str>>) {
-        let left_symbol = Symbol::intern(left);
-        let mut right_arr: Vec<Vec<Symbol>> = vec![vec![]];
 
-        for branch in right {
-            let mut branch_arr: Vec<Symbol> = vec![];
-            for item in branch {
-                branch_arr.push(Symbol::intern(item));
-            }
-            right_arr.push(branch_arr);
-        }
-
-        self.insert_by_symbol(left_symbol, right_arr)
-    }
-
-    pub fn insert_by_symbol(&mut self, left: Symbol, right: Vec<Vec<Symbol>>) {
+    pub fn insert(&mut self, left: Symbol, right: Vec<RuleRight>) {
         self.0.push(Rule(left, right))
     }
 
@@ -174,7 +158,6 @@ impl Rules {
         }
     }
 
-
     pub fn derive(self, base: Symbol, suffix: Symbol) -> Option<Vec<Symbol>> {
         let mut result: Vec<Symbol> = vec![];
 
@@ -190,12 +173,45 @@ impl Rules {
             None
         }
     }
+}
 
-    fn derive_single(self, base: Symbol) -> Option<Vec<Symbol>> {
+#[derive(Debug, Clone)]
+pub struct TerminalRule(Symbol, Vec<Symbol>);
+
+impl TerminalRule {
+    pub fn start(self) -> Symbol {
+        self.0
+    }
+
+    fn derive(self, base: Symbol) -> Option<Symbol> {
+        for symbol in self.1 {
+            if symbol.eq(&base) {
+                return Some(self.0);
+            }
+        }
+
+        None
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct TerminalRules(Vec<TerminalRule>);
+
+impl TerminalRules {
+    pub fn new() -> Self {
+        let rules: Vec<TerminalRule> = vec![];
+        TerminalRules(rules)
+    }
+
+    pub fn insert(&mut self, left: Symbol, right: Vec<Symbol>) {
+        self.0.push(TerminalRule(left, right))
+    }
+
+    fn derive(self, base: Symbol) -> Option<Vec<Symbol>> {
         let mut result: Vec<Symbol> = vec![];
 
         for rule in self.0 {
-            if let Some(symbol) = rule.derive_single(base) {
+            if let Some(symbol) = rule.derive(base) {
                 result.push(symbol)
             }
         }
@@ -214,6 +230,7 @@ pub struct CNF {
     terminals: Vec<Symbol>,
     non_terminals: Vec<Symbol>,
     rules: Rules,
+    terminal_rules: TerminalRules,
 }
 
 impl CNF {
@@ -222,16 +239,17 @@ impl CNF {
         terminals: Vec<Symbol>,
         non_terminals: Vec<Symbol>,
         rules: Rules,
+        terminal_rules: TerminalRules,
     ) -> Self {
         CNF {
             start,
             terminals,
             non_terminals,
             rules,
+            terminal_rules,
         }
     }
 }
-
 
 impl Grammar for CNF {
     fn start_symbol(self) -> Symbol {
@@ -256,6 +274,6 @@ impl Grammar for CNF {
     }
 
     fn derive_single(self, base: Symbol) -> Option<Vec<Symbol>> {
-        self.rules.derive_single(base)
+        self.terminal_rules.derive(base)
     }
 }
