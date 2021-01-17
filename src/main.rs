@@ -1,9 +1,9 @@
 extern crate cyk;
 
-use cyk::cnf;
+use cyk::cnf_grammar;
 
 fn main() {
-    let parser = cnf! {
+    let grammar = cnf_grammar! {
         Start("Number");
         NonTerminal[
             "Number", "N1", "Integer", "Fraction",
@@ -47,8 +47,20 @@ fn main() {
             "Digit" => [
                 ["0"], ["1"], ["2"], ["3"], ["4"], ["5"],
                 ["6"], ["7"], ["8"], ["9"],
+            ],
+            "Sign" => [
+                ["+"], ["-"]
             ]
         ]
     };
-    println!("{:?}", parser);
+    println!("{:?}", grammar);
+    let mut reader = cyk::StringReader::new(&grammar);
+    match reader.recognize("3.51e+1") {
+        Ok(node) => {
+            println!("Ok: {:?}", node);
+        }
+        Err(unknowns) => unknowns.iter().for_each(|item| {
+            println!("Err: {:?}", item);
+        }),
+    }
 }

@@ -1,7 +1,8 @@
-pub use super::symbol::*;
+use super::symbol::*;
+use super::Grammar;
 
 #[macro_export]
-macro_rules! cnf {
+macro_rules! cnf_grammar {
     (Start($start:literal);NonTerminal[$($non_terminal:literal),+ $(,)?];Terminal[$($terminal:literal),+ $(,)?];Rules[$($left:literal => [$([$($right:literal),+ $(,)?]),+ $(,)?]),+ $(,)?]) => {
         {
             let start_terminal = $crate::Symbol::intern($start);
@@ -35,8 +36,8 @@ macro_rules! cnf {
                         branch.push(symbol);
                     )*
                     assert!(
-                        branch.len() <= 2,
-                        "The maximum length of a right-hand side in a rule is 2 in CNF"
+                        branch.len() == 2 || branch.len() == 1,
+                        "The length of a right-hand side in a rule should be 1 or 2 in CNF"
                     );
                     right.push(branch);
                 )*
@@ -54,18 +55,61 @@ macro_rules! cnf {
 struct Rule(Symbol, Vec<Vec<Symbol>>);
 
 impl Rule {
-    pub fn first(self) -> Vec<Symbol> {
+    pub fn first(self) -> Option<Vec<Symbol>> {
         let mut result: Vec<Symbol> = vec![];
 
         for branch in self.1 {
             result.push(*branch.first().unwrap())
         }
 
-        result
+        if result.len() > 0 {
+            Some(result)
+        } else {
+            None
+        }
+    }
+
+    pub fn follow(self, symbol: Symbol) -> Option<Vec<Symbol>> {
+        let mut result: Vec<Symbol> = vec![];
+
+        for branch in self.1 {
+            if branch.len() == 2 && *branch.first().unwrap() == symbol {
+                result.push(*branch.get(1).unwrap())
+            }
+        }
+
+        if result.len() > 0 {
+            Some(result)
+        } else {
+            None
+        }
     }
 
     pub fn start_with(self, symbol: Symbol) -> bool {
         self.0 == symbol
+    }
+
+    pub fn derive(&self, base: Symbol, suffix: Symbol) -> Option<Symbol> {
+        match self.clone().follow(base) {
+            Some(symbols) => {
+                if symbols.iter().any(|sym| sym.eq(&suffix)) {
+                    Some(self.0)
+                } else {
+                    None
+                }
+            }
+            None => None
+        }
+    }
+
+    fn derive_single(self, base: Symbol) -> Option<Symbol> {
+        for symbols in self.1 {
+            if symbols.len() == 1 && symbols.first().unwrap().eq(&base) {
+                return Some(self.0)
+            }
+        }
+
+        None
     }
 }
 
@@ -96,20 +140,75 @@ impl Rules {
         self.0.push(Rule(left, right))
     }
 
-    pub fn first(self, symbol: Symbol) -> Vec<Symbol> {
+    pub fn first(self, symbol: Symbol) -> Option<Vec<Symbol>> {
         let mut result: Vec<Symbol> = vec![];
 
         for rule in self.0 {
             if rule.clone().start_with(symbol) {
-                result.append(&mut rule.first())
+                if let Some(mut symbols) = rule.first() {
+                    result.append(&mut symbols)
+                }
             }
         }
 
-        result
+        if result.len() > 0 {
+            Some(result)
+        } else {
+            None
+        }
+    }
+
+    pub fn follow(self, symbol: Symbol) -> Option<Vec<Symbol>> {
+        let mut result: Vec<Symbol> = vec![];
+
+        for rule in self.0 {
+            if let Some(mut symbols) = rule.follow(symbol) {
+                result.append(&mut symbols)
+            }
+        }
+
+        if result.len() > 0 {
+            Some(result)
+        } else {
+            None
+        }
+    }
+
+
+    pub fn derive(self, base: Symbol, suffix: Symbol) -> Option<Vec<Symbol>> {
+        let mut result: Vec<Symbol> = vec![];
+
+        for rule in self.0 {
+            if let Some(symbol) = rule.derive(base, suffix) {
+                result.push(symbol)
+            }
+        }
+
+        if result.len() > 0 {
+            Some(result)
+        } else {
+            None
+        }
+    }
+
+    fn derive_single(self, base: Symbol) -> Option<Vec<Symbol>> {
+        let mut result: Vec<Symbol> = vec![];
+
+        for rule in self.0 {
+            if let Some(symbol) = rule.derive_single(base) {
+                result.push(symbol)
+            }
+        }
+
+        if result.len() > 0 {
+            Some(result)
+        } else {
+            None
+        }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CNF {
     start: Symbol,
     terminals: Vec<Symbol>,
@@ -130,5 +229,33 @@ impl CNF {
             non_terminals,
             rules,
         }
+    }
+}
+
+
+impl Grammar for CNF {
+    fn start_symbol(self) -> Symbol {
+        self.start
+    }
+
+    fn exist(self, symbol: Symbol) -> bool {
+        self.non_terminals.iter().any(|&sym| sym == symbol)
+            || self.terminals.iter().any(|&sym| sym == symbol)
+    }
+
+    fn first(self, symbol: Symbol) -> Option<Vec<Symbol>> {
+        self.rules.first(symbol)
+    }
+
+    fn follow(self, symbol: Symbol) -> Option<Vec<Symbol>> {
+        self.rules.follow(symbol)
+    }
+
+    fn derive(self, base: Symbol, suffix: Symbol) -> Option<Vec<Symbol>> {
+        self.rules.derive(base, suffix)
+    }
+
+    fn derive_single(self, base: Symbol) -> Option<Vec<Symbol>> {
+        self.rules.derive_single(base)
     }
 }

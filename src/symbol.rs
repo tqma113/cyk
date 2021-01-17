@@ -18,10 +18,14 @@ impl Symbol {
         with_interner(|interner| interner.intern(string))
     }
 
+    pub fn from_char(c: char) -> Option<Self> {
+        with_interner(|interner| interner.get(c.to_string().as_str()))
+    }
+
     /// Convert to a `SymbolStr`. This is a slowish operation because it
     /// requires locking the symbol interner.
     pub fn as_str(self) -> &'static str {
-        with_interner(|interner| unsafe { std::mem::transmute::<&str, &str>(interner.get(self)) })
+        with_interner(|interner| unsafe { std::mem::transmute::<&str, &str>(interner.get_str(self)) })
     }
 
     pub fn as_u32(self) -> u32 {
@@ -55,6 +59,13 @@ impl Interner {
         }
     }
 
+    pub fn get(&mut self, string: &str) -> Option<Symbol> {
+        match self.names.get(string) {
+            Some(&name) => Some(name),
+            None => None
+        }
+    }
+
     #[inline]
     pub fn intern(&mut self, string: &str) -> Symbol {
         if let Some(&name) = self.names.get(string) {
@@ -73,7 +84,7 @@ impl Interner {
 
     // Get the symbol as a string. `Symbol::as_str()` should be used in
     // preference to this function.
-    pub fn get(&self, symbol: Symbol) -> &str {
+    pub fn get_str(&self, symbol: Symbol) -> &str {
         self.strings[symbol.0]
     }
 }
