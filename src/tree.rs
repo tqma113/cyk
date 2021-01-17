@@ -2,7 +2,6 @@ use super::Symbol;
 
 use std::cmp::{Ord, Ordering};
 use std::fmt;
-use std::vec;
 
 #[derive(Copy, Clone, Debug, Hash)]
 pub struct Span(usize, usize);
@@ -64,10 +63,17 @@ impl PartialEq for Span {
 impl Eq for Span {}
 
 #[derive(Debug, Clone)]
+pub enum NodeChildren {
+    None,
+    Single(Box<Node>),
+    Double(Box<(Node, Node)>),
+}
+
+#[derive(Debug, Clone)]
 pub struct Node {
     kind: Symbol,
     span: Span,
-    children: Vec<Node>,
+    children: NodeChildren,
 }
 
 impl PartialEq for Node {
@@ -76,8 +82,21 @@ impl PartialEq for Node {
     }
 }
 
+impl fmt::Display for Node {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.clone().children() {
+            NodeChildren::Double(children) => {
+                let (left, right) = children.as_ref();
+                write!(f, "{}{}", left, right)
+            }
+            NodeChildren::Single(child) => write!(f, "{}", child.as_ref()),
+            NodeChildren::None => write!(f, "{}", self.clone().kind()),
+        }
+    }
+}
+
 impl Node {
-    pub fn new(kind: Symbol, span: Span, children: Vec<Node>) -> Self {
+    pub fn new(kind: Symbol, span: Span, children: NodeChildren) -> Self {
         Node {
             kind,
             span,
@@ -91,6 +110,10 @@ impl Node {
 
     pub fn span(self) -> Span {
         self.span
+    }
+
+    pub fn children(self) -> NodeChildren {
+        self.children
     }
 }
 
@@ -194,7 +217,7 @@ impl Cell {
     pub fn from_char(c: char, start: usize) -> Cell {
         let span = Span::new(start, 1);
         match Symbol::from_char(c) {
-            Some(symbol) => cell![Node::new(symbol, span, vec![]); span],
+            Some(symbol) => cell![Node::new(symbol, span, NodeChildren::None); span],
             None => {
                 assert!(false, format!("Unknown char:{} at {}", c, start));
                 cell![;span]

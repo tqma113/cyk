@@ -3,7 +3,12 @@ use super::Grammar;
 
 #[macro_export]
 macro_rules! cnf_grammar {
-    (Start($start:literal);NonTerminals[$($non_terminal:literal),+ $(,)?];Terminals[$($terminal:literal),+ $(,)?];Rules[$($left:literal => [$([$first:literal,$second:literal]),+ $(,)?]),+ $(,)?];TerminalRules[$($t_left:literal => [$($t_right:literal),+ $(,)?]),+ $(,)?]) => {
+    (
+        Start($start:literal);NonTerminals[$($non_terminal:literal),+ $(,)?];
+        Terminals[$($terminal:literal),+ $(,)?];
+        Rules[$($left:literal => [$([$first:literal,$second:literal]),+ $(,)?]),+ $(,)?];
+        TerminalRules[$($t_left:literal => [$($t_right:literal),+ $(,)?]),+ $(,)?]
+    ) => {
         {
             let start_terminal = $crate::Symbol::intern($start);
 
@@ -26,7 +31,10 @@ macro_rules! cnf_grammar {
                 );
                 let mut right: Vec<$crate::RuleRight> = vec![];
                 $(
-                    right.push($crate::RuleRight::new($crate::Symbol::intern($first), $crate::Symbol::intern($second)));
+                    right.push($crate::RuleRight::new(
+                        $crate::Symbol::intern($first),
+                        $crate::Symbol::intern($second)
+                    ));
                 )*
                 rules.insert(left, right);
             )*
@@ -41,7 +49,13 @@ macro_rules! cnf_grammar {
                 terminal_rules.insert(left, right);
             )*
 
-            $crate::CNF::new(start_terminal, non_terminals, terminals, rules, terminal_rules)
+            $crate::CNF::new(
+                start_terminal,
+                non_terminals,
+                terminals,
+                rules,
+                terminal_rules
+            )
         }
     };
 }
@@ -100,7 +114,7 @@ impl Rule {
     pub fn derive(&self, base: Symbol, suffix: Symbol) -> Option<Symbol> {
         match self.clone().follow(base) {
             Some(symbols) => {
-                if symbols.iter().any(|sym| sym.eq(&suffix)) {
+                if symbols.contains(&suffix) {
                     Some(self.0)
                 } else {
                     None
@@ -257,8 +271,7 @@ impl Grammar for CNF {
     }
 
     fn exist(self, symbol: Symbol) -> bool {
-        self.non_terminals.iter().any(|&sym| sym == symbol)
-            || self.terminals.iter().any(|&sym| sym == symbol)
+        self.non_terminals.contains(&symbol) || self.terminals.contains(&symbol)
     }
 
     fn first(self, symbol: Symbol) -> Option<Vec<Symbol>> {
@@ -275,5 +288,13 @@ impl Grammar for CNF {
 
     fn derive_single(self, base: Symbol) -> Option<Vec<Symbol>> {
         self.terminal_rules.derive(base)
+    }
+
+    fn is_terminal(self, input: Symbol) -> bool {
+        self.terminals.contains(&input)
+    }
+
+    fn is_non_terminal(self, input: Symbol) -> bool {
+        self.non_terminals.contains(&input)
     }
 }

@@ -31,6 +31,10 @@ pub trait Grammar {
     fn derive(self, base: Symbol, suffix: Symbol) -> Option<Vec<Symbol>>;
 
     fn derive_single(self, base: Symbol) -> Option<Vec<Symbol>>;
+
+    fn is_terminal(self, input: Symbol) -> bool;
+
+    fn is_non_terminal(self, input: Symbol) -> bool;
 }
 
 #[derive(Clone, Debug)]
@@ -120,8 +124,13 @@ impl<'a, G: Grammar + Debug + Clone> StringReader<'a, G> {
         match Symbol::from_char(c) {
             Some(symbol) => {
                 if let Some(symbols) = self.grammar.clone().derive_single(symbol) {
+                    let node = Node::new(symbol, span, NodeChildren::None);
                     for symbol in symbols {
-                        next_cell.push_nodes(Node::new(symbol, span, vec![]))
+                        next_cell.push_nodes(Node::new(
+                            symbol,
+                            span,
+                            NodeChildren::Single(Box::new(node.clone())),
+                        ))
                     }
                 }
             }
@@ -147,7 +156,7 @@ impl<'a, G: Grammar + Debug + Clone> StringReader<'a, G> {
                                 next_cell.push_nodes(Node::new(
                                     symbol,
                                     span,
-                                    vec![cur.clone(), suffix.clone()],
+                                    NodeChildren::Double(Box::new((cur.clone(), suffix.clone()))),
                                 ))
                             }
                         }

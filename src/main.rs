@@ -78,6 +78,7 @@ fn main() {
     match reader.recognize("3.51e+1") {
         Ok(node) => {
             println!("Ok: {:?}", node);
+            println!("Ok: {}", node);
         }
         Err(unknowns) => unknowns.iter().for_each(|item| {
             println!("Err: {:?}", item);

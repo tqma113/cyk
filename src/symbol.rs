@@ -13,7 +13,6 @@ impl Symbol {
         Symbol(n as usize)
     }
 
-    /// Maps a string to its interned representation.
     pub fn intern(string: &str) -> Self {
         with_interner(|interner| interner.intern(string))
     }
@@ -22,8 +21,6 @@ impl Symbol {
         with_interner(|interner| interner.get(c.to_string().as_str()))
     }
 
-    /// Convert to a `SymbolStr`. This is a slowish operation because it
-    /// requires locking the symbol interner.
     pub fn as_str(self) -> &'static str {
         with_interner(|interner| unsafe {
             std::mem::transmute::<&str, &str>(interner.get_str(self))
@@ -76,16 +73,12 @@ impl Interner {
 
         let name = Symbol::new(self.strings.len() as u32);
 
-        // It is safe to extend the arena allocation to `'static` because we only access
-        // these while the arena is still alive.
         let string: &'static str = unsafe { &*(string as *const str) };
         self.strings.push(string);
         self.names.insert(string, name);
         name
     }
 
-    // Get the symbol as a string. `Symbol::as_str()` should be used in
-    // preference to this function.
     pub fn get_str(&self, symbol: Symbol) -> &str {
         self.strings[symbol.0]
     }
