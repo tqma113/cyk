@@ -1,5 +1,5 @@
-mod symbol;
 mod cnf;
+mod symbol;
 
-pub use symbol::*;
 pub use cnf::*;
+pub use symbol::*;
