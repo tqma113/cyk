@@ -2,6 +2,7 @@ use super::Symbol;
 
 use std::cmp::{Ord, Ordering};
 use std::fmt;
+use std::fmt::Debug;
 
 #[derive(Copy, Clone, Debug, Hash)]
 pub struct Span(usize, usize);
@@ -69,7 +70,7 @@ pub enum NodeChildren {
     Double(Box<(Node, Node)>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Node {
     kind: Symbol,
     span: Span,
@@ -84,14 +85,17 @@ impl PartialEq for Node {
 
 impl fmt::Display for Node {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.clone().children() {
-            NodeChildren::Double(children) => {
-                let (left, right) = children.as_ref();
-                write!(f, "{}{}", left, right)
-            }
-            NodeChildren::Single(child) => write!(f, "{}", child.as_ref()),
-            NodeChildren::None => write!(f, "{}", self.clone().kind()),
-        }
+        write!(f, "{}", self.to_string())
+    }
+}
+
+impl Debug for Node {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Node")
+            .field("kind", &self.kind)
+            .field("span", &self.span)
+            .field("value", &self.to_string())
+            .finish()
     }
 }
 
@@ -114,6 +118,17 @@ impl Node {
 
     pub fn children(self) -> NodeChildren {
         self.children
+    }
+
+    pub fn to_string(&self) -> String {
+        match self.clone().children() {
+            NodeChildren::Double(children) => {
+                let (left, right) = children.as_ref();
+                format!("{}{}", left, right)
+            }
+            NodeChildren::Single(child) => format!("{}", child.as_ref()),
+            NodeChildren::None => format!("{}", self.clone().kind()),
+        }
     }
 }
 

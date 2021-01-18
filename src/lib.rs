@@ -100,8 +100,9 @@ impl<'a, G: Grammar + Debug + Clone> StringReader<'a, G> {
                         if let Some(base_span) = base_cell.clone().span() {
                             if let Some(rest_span) = rest_span(base_span, span.len()) {
                                 if let Some(rest_cell) = self.get_cell(rest_span) {
-                                    let next_cell = self.clone().derive(span, base_cell, rest_cell);
-                                    cell_list.push(next_cell.clone());
+                                    if let Some(next_cell) = self.clone().derive(span, base_cell, rest_cell) {
+                                        cell_list.push(next_cell.clone());
+                                    }
                                 }
                             }
                         }
@@ -140,7 +141,7 @@ impl<'a, G: Grammar + Debug + Clone> StringReader<'a, G> {
         next_cell.clone()
     }
 
-    fn derive(self, span: Span, base: &Cell, suffix: &Cell) -> Cell {
+    fn derive(self, span: Span, base: &Cell, suffix: &Cell) -> Option<Cell> {
         let next_cell = &mut cell![;span];
 
         for cur in &base.0 {
@@ -166,9 +167,9 @@ impl<'a, G: Grammar + Debug + Clone> StringReader<'a, G> {
         }
 
         if next_cell.clone().len() > 0 {
-            next_cell.clone()
+            Some(next_cell.clone())
         } else {
-            base.clone()
+            None
         }
     }
 
