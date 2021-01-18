@@ -12,21 +12,21 @@ impl Span {
         Span(start, len)
     }
 
-    pub fn as_str(self) -> &'static str {
+    pub fn as_str(&self) -> &'static str {
         let string: &'static str =
             unsafe { &*(format!("{},{}", self.0, self.1).as_str() as *const str) };
         string
     }
 
-    pub fn start(self) -> usize {
+    pub fn start(&self) -> usize {
         self.0
     }
 
-    pub fn end(self) -> usize {
+    pub fn end(&self) -> usize {
         self.0 + self.1
     }
 
-    pub fn len(self) -> usize {
+    pub fn len(&self) -> usize {
         self.1
     }
 }
@@ -71,13 +71,17 @@ impl PartialEq for Node {
 
 impl fmt::Display for Node {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", match self.clone().children() {
-            NodeChildren::Double(left, right) => {
-                format!("{}{}", left, right)
+        write!(
+            f,
+            "{}",
+            match self.children() {
+                NodeChildren::Double(left, right) => {
+                    format!("{}{}", left, right)
+                }
+                NodeChildren::Single(child) => format!("{}", child.as_ref()),
+                NodeChildren::None => format!("{}", self.kind()),
             }
-            NodeChildren::Single(child) => format!("{}", child.as_ref()),
-            NodeChildren::None => format!("{}", self.clone().kind()),
-        })
+        )
     }
 }
 
@@ -100,16 +104,16 @@ impl Node {
         }
     }
 
-    pub fn kind(self) -> Symbol {
+    pub fn kind(&self) -> Symbol {
         self.kind
     }
 
-    pub fn span(self) -> Span {
+    pub fn span(&self) -> Span {
         self.span
     }
 
-    pub fn children(self) -> NodeChildren {
-        self.children
+    pub fn children(&self) -> NodeChildren {
+        self.children.clone()
     }
 }
 
@@ -118,10 +122,7 @@ pub struct Cell(pub Vec<Node>, Span);
 
 impl Ord for Cell {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.clone()
-            .span()
-            .unwrap()
-            .cmp(&other.clone().span().unwrap())
+        self.span().unwrap().cmp(&other.span().unwrap())
     }
 }
 
@@ -133,17 +134,12 @@ impl PartialOrd for Cell {
 
 impl PartialEq for Cell {
     fn eq(&self, other: &Self) -> bool {
-        if self.clone().len() != other.clone().len() {
+        if self.len() != other.len() {
             return false;
         }
 
-        for i in 0..self.clone().len() {
-            if !self
-                .clone()
-                .nth(i)
-                .unwrap()
-                .eq(&other.clone().nth(i).unwrap())
-            {
+        for i in 0..self.len() {
+            if !self.nth(i).unwrap().eq(&other.nth(i).unwrap()) {
                 return false;
             }
         }
@@ -172,25 +168,27 @@ impl Cell {
         Cell(nodes, span)
     }
 
-    pub fn nth(self, n: usize) -> Option<Node> {
+    pub fn nth(&self, n: usize) -> Option<Node> {
         match self.0.get(n) {
-            Some(fg) => Some(fg.clone()),
+            Some(node) => Some(node.clone()),
             None => None,
         }
     }
 
-    pub fn span(self) -> Option<Span> {
+    pub fn span(&self) -> Option<Span> {
         match self.0.last() {
             Some(node) => Some(node.span),
             None => None,
         }
     }
 
-    pub fn len(self) -> usize {
+    pub fn len(&self) -> usize {
         self.0.len()
     }
 
-    pub fn is_empty(&self) -> bool { self.0.is_empty() }
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
 
     pub fn append(&mut self, mut another: Cell) {
         self.0.append(another.0.as_mut())
@@ -207,7 +205,7 @@ impl Cell {
     pub fn has(&self, symbol: Symbol) -> Option<Node> {
         match self.0.iter().find(|node| node.kind.eq(&symbol)) {
             Some(node) => Some(node.clone()),
-            None => None
+            None => None,
         }
     }
 }

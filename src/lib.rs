@@ -20,21 +20,21 @@ fn rest_span(span: Span, len: usize) -> Option<Span> {
 }
 
 pub trait Grammar {
-    fn start_symbol(self) -> Symbol;
+    fn start_symbol(&self) -> Symbol;
 
-    fn exist(self, symbol: Symbol) -> bool;
+    fn exist(&self, symbol: Symbol) -> bool;
 
-    fn first(self, symbol: Symbol) -> Option<Vec<Symbol>>;
+    fn first(&self, symbol: Symbol) -> Option<Vec<Symbol>>;
 
-    fn follow(self, symbol: Symbol) -> Option<Vec<Symbol>>;
+    fn follow(&self, symbol: Symbol) -> Option<Vec<Symbol>>;
 
-    fn derive(self, base: Symbol, suffix: Symbol) -> Option<Vec<Symbol>>;
+    fn derive(&self, base: Symbol, suffix: Symbol) -> Option<Vec<Symbol>>;
 
-    fn derive_single(self, base: Symbol) -> Option<Vec<Symbol>>;
+    fn derive_single(&self, base: Symbol) -> Option<Vec<Symbol>>;
 
-    fn is_terminal(self, input: Symbol) -> bool;
+    fn is_terminal(&self, input: Symbol) -> bool;
 
-    fn is_non_terminal(self, input: Symbol) -> bool;
+    fn is_non_terminal(&self, input: Symbol) -> bool;
 }
 
 #[derive(Clone, Debug)]
@@ -64,15 +64,15 @@ impl<'a, G: Grammar + Debug + Clone> StringReader<'a, G> {
         self.slices = HashMap::new();
         self.unknowns = vec![];
 
-        let src_len = self.clone().src_len();
+        let src_len = self.src_len();
         for len in 1..(src_len + 1) {
-            for span in self.clone().spans_from_len(len) {
+            for span in self.spans_from_len(len) {
                 self.recognize_span(span);
             }
         }
 
         match self.get_cell(Span::new(0, src_len)) {
-            Some(cell) => match cell.clone().has(self.grammar.clone().start_symbol()) {
+            Some(cell) => match cell.has(self.grammar.start_symbol()) {
                 Some(node) => Ok(node),
                 None => Err(self.unknowns.clone()),
             },
@@ -85,7 +85,7 @@ impl<'a, G: Grammar + Debug + Clone> StringReader<'a, G> {
             1 => {
                 let start = span.start();
                 let c = *self.chars.get(start).unwrap();
-                let cell = self.clone().derive_char(span, c);
+                let cell = self.derive_char(span, c);
                 if cell.is_empty() {
                     self.add_unknown(c, span)
                 } else {
@@ -97,13 +97,12 @@ impl<'a, G: Grammar + Debug + Clone> StringReader<'a, G> {
                 for len in 1..span.len() {
                     let base_span = Span::new(span.start(), len);
                     if let Some(base_cell) = self.get_cell(base_span) {
-                        if let Some(base_span) = base_cell.clone().span() {
+                        if let Some(base_span) = base_cell.span() {
                             if let Some(rest_span) = rest_span(base_span, span.len()) {
                                 if let Some(rest_cell) = self.get_cell(rest_span) {
-                                    if let Some(next_cell) =
-                                        self.clone().derive(span, base_cell, rest_cell)
+                                    if let Some(next_cell) = self.derive(span, &base_cell, &rest_cell)
                                     {
-                                        cell_list.push(next_cell.clone());
+                                        cell_list.push(next_cell);
                                     }
                                 }
                             }
@@ -114,17 +113,17 @@ impl<'a, G: Grammar + Debug + Clone> StringReader<'a, G> {
                 cell_list.sort();
 
                 if let Some(cell) = cell_list.last() {
-                    self.add_cell(cell.clone(), span)
+                    self.add_cell((*cell).clone(), span)
                 }
             }
         }
     }
 
-    fn derive_char(self, span: Span, c: char) -> Cell {
+    fn derive_char(&self, span: Span, c: char) -> Cell {
         let mut next_cell = cell![;span];
 
         if let Some(symbol) = Symbol::from_char(c) {
-            if let Some(symbols) = self.grammar.clone().derive_single(symbol) {
+            if let Some(symbols) = self.grammar.derive_single(symbol) {
                 for sym in symbols {
                     next_cell.push_nodes(Node::new(
                         sym,
@@ -138,23 +137,22 @@ impl<'a, G: Grammar + Debug + Clone> StringReader<'a, G> {
         next_cell
     }
 
-    fn derive(self, span: Span, base: &Cell, suffix: &Cell) -> Option<Cell> {
+    fn derive(&self, span: Span, base: &Cell, suffix: &Cell) -> Option<Cell> {
         let mut next_cell = cell![;span];
 
         for cur in &base.0 {
             for suffix in &suffix.0 {
-                if let Some(symbols) = self.grammar.clone().follow(cur.clone().kind()) {
-                    if symbols.iter().any(|&sym| sym.eq(&suffix.clone().kind())) {
-                        if let Some(symbols) = self
-                            .grammar
-                            .clone()
-                            .derive(cur.clone().kind(), suffix.clone().kind())
-                        {
+                if let Some(symbols) = self.grammar.follow(cur.kind()) {
+                    if symbols.iter().any(|&sym| sym.eq(&suffix.kind())) {
+                        if let Some(symbols) = self.grammar.derive(cur.kind(), suffix.kind()) {
                             for symbol in symbols {
                                 next_cell.push_nodes(Node::new(
                                     symbol,
                                     span,
-                                    NodeChildren::Double(Box::new(cur.clone()), Box::new(suffix.clone())),
+                                    NodeChildren::Double(
+                                        Box::new(cur.clone()),
+                                        Box::new(suffix.clone()),
+                                    ),
                                 ))
                             }
                         }
@@ -174,7 +172,7 @@ impl<'a, G: Grammar + Debug + Clone> StringReader<'a, G> {
         self.slices.get(&span)
     }
 
-    fn spans_from_len(self, len: usize) -> Vec<Span> {
+    fn spans_from_len(&self, len: usize) -> Vec<Span> {
         let mut spans: Vec<Span> = Vec::new();
         let src_len = self.src_len();
 
@@ -195,7 +193,7 @@ impl<'a, G: Grammar + Debug + Clone> StringReader<'a, G> {
         self.unknowns.push(Diagnostic::new(c, span));
     }
 
-    fn src_len(self) -> usize {
+    fn src_len(&self) -> usize {
         self.chars.len()
     }
 }

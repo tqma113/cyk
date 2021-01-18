@@ -73,10 +73,10 @@ impl RuleRight {
 pub struct Rule(Symbol, Vec<RuleRight>);
 
 impl Rule {
-    pub fn first(self) -> Option<Vec<Symbol>> {
+    pub fn first(&self) -> Option<Vec<Symbol>> {
         let mut result: Vec<Symbol> = vec![];
 
-        for branch in self.1 {
+        for branch in &self.1 {
             result.push(branch.0)
         }
 
@@ -87,10 +87,10 @@ impl Rule {
         }
     }
 
-    pub fn follow(self, symbol: Symbol) -> Option<Vec<Symbol>> {
+    pub fn follow(&self, symbol: Symbol) -> Option<Vec<Symbol>> {
         let mut result: Vec<Symbol> = vec![];
 
-        for branch in self.1 {
+        for branch in &self.1 {
             if branch.0 == symbol {
                 result.push(branch.1)
             }
@@ -103,16 +103,16 @@ impl Rule {
         }
     }
 
-    pub fn start(self) -> Symbol {
+    pub fn start(&self) -> Symbol {
         self.0
     }
 
-    pub fn start_with(self, symbol: Symbol) -> bool {
+    pub fn start_with(&self, symbol: Symbol) -> bool {
         self.0 == symbol
     }
 
     pub fn derive(&self, base: Symbol, suffix: Symbol) -> Option<Symbol> {
-        match self.clone().follow(base) {
+        match self.follow(base) {
             Some(symbols) => {
                 if symbols.contains(&suffix) {
                     Some(self.0)
@@ -144,11 +144,11 @@ impl Rules {
         self.0.push(Rule(left, right))
     }
 
-    pub fn first(self, symbol: Symbol) -> Option<Vec<Symbol>> {
+    pub fn first(&self, symbol: Symbol) -> Option<Vec<Symbol>> {
         let mut result: Vec<Symbol> = vec![];
 
-        for rule in self.0 {
-            if rule.clone().start_with(symbol) {
+        for rule in &self.0 {
+            if rule.start_with(symbol) {
                 if let Some(mut symbols) = rule.first() {
                     result.append(&mut symbols)
                 }
@@ -162,10 +162,10 @@ impl Rules {
         }
     }
 
-    pub fn follow(self, symbol: Symbol) -> Option<Vec<Symbol>> {
+    pub fn follow(&self, symbol: Symbol) -> Option<Vec<Symbol>> {
         let mut result: Vec<Symbol> = vec![];
 
-        for rule in self.0 {
+        for rule in &self.0 {
             if let Some(mut symbols) = rule.follow(symbol) {
                 result.append(&mut symbols)
             }
@@ -178,10 +178,10 @@ impl Rules {
         }
     }
 
-    pub fn derive(self, base: Symbol, suffix: Symbol) -> Option<Vec<Symbol>> {
+    pub fn derive(&self, base: Symbol, suffix: Symbol) -> Option<Vec<Symbol>> {
         let mut result: Vec<Symbol> = vec![];
 
-        for rule in self.0 {
+        for rule in &self.0 {
             if let Some(symbol) = rule.derive(base, suffix) {
                 result.push(symbol)
             }
@@ -199,12 +199,12 @@ impl Rules {
 pub struct TerminalRule(Symbol, Vec<Symbol>);
 
 impl TerminalRule {
-    pub fn start(self) -> Symbol {
+    pub fn start(&self) -> Symbol {
         self.0
     }
 
-    fn derive(self, base: Symbol) -> Option<Symbol> {
-        for symbol in self.1 {
+    fn derive(&self, base: Symbol) -> Option<Symbol> {
+        for symbol in &self.1 {
             if symbol.eq(&base) {
                 return Some(self.0);
             }
@@ -233,10 +233,10 @@ impl TerminalRules {
         self.0.push(TerminalRule(left, right))
     }
 
-    fn derive(self, base: Symbol) -> Option<Vec<Symbol>> {
+    fn derive(&self, base: Symbol) -> Option<Vec<Symbol>> {
         let mut result: Vec<Symbol> = vec![];
 
-        for rule in self.0 {
+        for rule in &self.0 {
             if let Some(symbol) = rule.derive(base) {
                 result.push(symbol)
             }
@@ -278,35 +278,35 @@ impl CNF {
 }
 
 impl Grammar for CNF {
-    fn start_symbol(self) -> Symbol {
+    fn start_symbol(&self) -> Symbol {
         self.start
     }
 
-    fn exist(self, symbol: Symbol) -> bool {
+    fn exist(&self, symbol: Symbol) -> bool {
         self.non_terminals.contains(&symbol) || self.terminals.contains(&symbol)
     }
 
-    fn first(self, symbol: Symbol) -> Option<Vec<Symbol>> {
+    fn first(&self, symbol: Symbol) -> Option<Vec<Symbol>> {
         self.rules.first(symbol)
     }
 
-    fn follow(self, symbol: Symbol) -> Option<Vec<Symbol>> {
+    fn follow(&self, symbol: Symbol) -> Option<Vec<Symbol>> {
         self.rules.follow(symbol)
     }
 
-    fn derive(self, base: Symbol, suffix: Symbol) -> Option<Vec<Symbol>> {
+    fn derive(&self, base: Symbol, suffix: Symbol) -> Option<Vec<Symbol>> {
         self.rules.derive(base, suffix)
     }
 
-    fn derive_single(self, base: Symbol) -> Option<Vec<Symbol>> {
+    fn derive_single(&self, base: Symbol) -> Option<Vec<Symbol>> {
         self.terminal_rules.derive(base)
     }
 
-    fn is_terminal(self, input: Symbol) -> bool {
+    fn is_terminal(&self, input: Symbol) -> bool {
         self.terminals.contains(&input)
     }
 
-    fn is_non_terminal(self, input: Symbol) -> bool {
+    fn is_non_terminal(&self, input: Symbol) -> bool {
         self.non_terminals.contains(&input)
     }
 }

@@ -21,13 +21,13 @@ impl Symbol {
         with_interner(|interner| interner.get(c.to_string().as_str()))
     }
 
-    pub fn as_str(self) -> &'static str {
+    pub fn as_str(&self) -> &'static str {
         with_interner(|interner| unsafe {
-            std::mem::transmute::<&str, &str>(interner.get_str(self))
+            std::mem::transmute::<&str, &str>(interner.get_str(*self))
         })
     }
 
-    pub fn as_u32(self) -> u32 {
+    pub fn as_u32(&self) -> u32 {
         self.0 as u32
     }
 }
