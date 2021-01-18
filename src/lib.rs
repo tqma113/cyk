@@ -24,13 +24,13 @@ pub trait Grammar {
 
     fn exist(&self, symbol: Symbol) -> bool;
 
-    fn first(&self, symbol: Symbol) -> Option<Vec<Symbol>>;
+    fn first(&self, symbol: Symbol) -> Option<HashSet<Symbol>>;
 
-    fn follow(&self, symbol: Symbol) -> Option<Vec<Symbol>>;
+    fn follow(&self, symbol: Symbol) -> Option<HashSet<Symbol>>;
 
-    fn derive(&self, base: Symbol, suffix: Symbol) -> Option<Vec<Symbol>>;
+    fn derive(&self, base: Symbol, suffix: Symbol) -> Option<HashSet<Symbol>>;
 
-    fn derive_single(&self, base: Symbol) -> Option<Vec<Symbol>>;
+    fn derive_single(&self, base: Symbol) -> Option<HashSet<Symbol>>;
 
     fn is_terminal(&self, input: Symbol) -> bool;
 

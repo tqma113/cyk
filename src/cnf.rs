@@ -37,9 +37,9 @@ macro_rules! cnf_grammar {
                     non_terminals.contains(&left),
                     format!("The rule's left part: {} is in non-terminals", left)
                 );
-                let mut right: Vec<$crate::RuleRight> = vec![];
+                let mut right: $crate::HashSet<$crate::RuleRight> = $crate::HashSet::new();
                 $(
-                    right.push($crate::RuleRight::new(
+                    right.insert($crate::RuleRight::new(
                         $crate::Symbol::intern($first),
                         $crate::Symbol::intern($second)
                     ));
@@ -50,9 +50,18 @@ macro_rules! cnf_grammar {
             let mut terminal_rules = $crate::TerminalRules::new();
             $(
                 let left = $crate::Symbol::intern($t_left);
-                let mut right: Vec<$crate::Symbol> = vec![];
+                assert!(
+                    non_terminals.contains(&left),
+                    format!("The rule's left part: {} is in non-terminals", left)
+                );
+                let mut right: $crate::HashSet<$crate::Symbol> = $crate::HashSet::new();
                 $(
-                    right.push($crate::Symbol::intern($t_right));
+                    let symbol = $crate::Symbol::intern($t_right);
+                    assert!(
+                        terminals.contains(&symbol),
+                        format!("The rule's left part: {} is in non-terminals", left)
+                    );
+                    right.insert(symbol);
                 )*
                 terminal_rules.insert(left, right);
             )*
@@ -68,7 +77,7 @@ macro_rules! cnf_grammar {
     };
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
 pub struct RuleRight(Symbol, Symbol);
 
 impl RuleRight {
@@ -78,14 +87,14 @@ impl RuleRight {
 }
 
 #[derive(Debug, Clone)]
-pub struct Rule(Symbol, Vec<RuleRight>);
+pub struct Rule(Symbol, HashSet<RuleRight>);
 
 impl Rule {
-    pub fn first(&self) -> Option<Vec<Symbol>> {
-        let mut result: Vec<Symbol> = vec![];
+    pub fn first(&self) -> Option<HashSet<Symbol>> {
+        let mut result: HashSet<Symbol> = HashSet::new();
 
         for branch in &self.1 {
-            result.push(branch.0)
+            result.insert(branch.0);
         }
 
         if !result.is_empty() {
@@ -148,17 +157,17 @@ impl Rules {
         Rules(rules)
     }
 
-    pub fn insert(&mut self, left: Symbol, right: Vec<RuleRight>) {
+    pub fn insert(&mut self, left: Symbol, right: HashSet<RuleRight>) {
         self.0.push(Rule(left, right))
     }
 
-    pub fn first(&self, symbol: Symbol) -> Option<Vec<Symbol>> {
-        let mut result: Vec<Symbol> = vec![];
+    pub fn first(&self, symbol: Symbol) -> Option<HashSet<Symbol>> {
+        let mut result: HashSet<Symbol> = HashSet::new();
 
         for rule in &self.0 {
             if rule.start_with(symbol) {
-                if let Some(mut symbols) = rule.first() {
-                    result.append(&mut symbols)
+                if let Some(symbols) = rule.first() {
+                    result.extend(symbols)
                 }
             }
         }
@@ -170,12 +179,12 @@ impl Rules {
         }
     }
 
-    pub fn follow(&self, symbol: Symbol) -> Option<Vec<Symbol>> {
-        let mut result: Vec<Symbol> = vec![];
+    pub fn follow(&self, symbol: Symbol) -> Option<HashSet<Symbol>> {
+        let mut result: HashSet<Symbol> = HashSet::new();
 
         for rule in &self.0 {
-            if let Some(mut symbols) = rule.follow(symbol) {
-                result.append(&mut symbols)
+            if let Some(symbols) = rule.follow(symbol) {
+                result.extend(symbols)
             }
         }
 
@@ -186,12 +195,12 @@ impl Rules {
         }
     }
 
-    pub fn derive(&self, base: Symbol, suffix: Symbol) -> Option<Vec<Symbol>> {
-        let mut result: Vec<Symbol> = vec![];
+    pub fn derive(&self, base: Symbol, suffix: Symbol) -> Option<HashSet<Symbol>> {
+        let mut result: HashSet<Symbol> = HashSet::new();
 
         for rule in &self.0 {
             if let Some(symbol) = rule.derive(base, suffix) {
-                result.push(symbol)
+                result.insert(symbol);
             }
         }
 
@@ -204,7 +213,7 @@ impl Rules {
 }
 
 #[derive(Debug, Clone)]
-pub struct TerminalRule(Symbol, Vec<Symbol>);
+pub struct TerminalRule(Symbol, HashSet<Symbol>);
 
 impl TerminalRule {
     pub fn start(&self) -> Symbol {
@@ -237,16 +246,16 @@ impl TerminalRules {
         TerminalRules(rules)
     }
 
-    pub fn insert(&mut self, left: Symbol, right: Vec<Symbol>) {
+    pub fn insert(&mut self, left: Symbol, right: HashSet<Symbol>) {
         self.0.push(TerminalRule(left, right))
     }
 
-    fn derive(&self, base: Symbol) -> Option<Vec<Symbol>> {
-        let mut result: Vec<Symbol> = vec![];
+    fn derive(&self, base: Symbol) -> Option<HashSet<Symbol>> {
+        let mut result: HashSet<Symbol> = HashSet::new();
 
         for rule in &self.0 {
             if let Some(symbol) = rule.derive(base) {
-                result.push(symbol)
+                result.insert(symbol);
             }
         }
 
@@ -294,19 +303,19 @@ impl Grammar for CNF {
         self.non_terminals.contains(&symbol) || self.terminals.contains(&symbol)
     }
 
-    fn first(&self, symbol: Symbol) -> Option<Vec<Symbol>> {
+    fn first(&self, symbol: Symbol) -> Option<HashSet<Symbol>> {
         self.rules.first(symbol)
     }
 
-    fn follow(&self, symbol: Symbol) -> Option<Vec<Symbol>> {
+    fn follow(&self, symbol: Symbol) -> Option<HashSet<Symbol>> {
         self.rules.follow(symbol)
     }
 
-    fn derive(&self, base: Symbol, suffix: Symbol) -> Option<Vec<Symbol>> {
+    fn derive(&self, base: Symbol, suffix: Symbol) -> Option<HashSet<Symbol>> {
         self.rules.derive(base, suffix)
     }
 
-    fn derive_single(&self, base: Symbol) -> Option<Vec<Symbol>> {
+    fn derive_single(&self, base: Symbol) -> Option<HashSet<Symbol>> {
         self.terminal_rules.derive(base)
     }
 
