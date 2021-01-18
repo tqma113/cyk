@@ -35,7 +35,7 @@ macro_rules! cnf_grammar {
                 let left = $crate::Symbol::intern($left);
                 assert!(
                     non_terminals.contains(&left),
-                    format!("The rule's left part: {} is in non-terminals", left)
+                    format!("The rule's left part: {} is not exist in non-terminals", left)
                 );
                 let mut right: $crate::HashSet<$crate::RuleRight> = $crate::HashSet::new();
                 $(
@@ -43,11 +43,11 @@ macro_rules! cnf_grammar {
                     let second = $crate::Symbol::intern($second);
                     assert!(
                         terminals.contains(&first) || non_terminals.contains(&first),
-                        format!("The rule's first part: {} is in non-terminal or terminal set", first)
+                        format!("The rule's first part: {} is not exist in non-terminal or terminal set", first)
                     );
                     assert!(
                         terminals.contains(&second) || non_terminals.contains(&second),
-                        format!("The rule's second part: {} is in non-terminal or terminal set", second)
+                        format!("The rule's second part: {} is not exist in non-terminal or terminal set", second)
                     );
                     right.insert($crate::RuleRight::new(first, second));
                 )*
@@ -59,14 +59,14 @@ macro_rules! cnf_grammar {
                 let left = $crate::Symbol::intern($t_left);
                 assert!(
                     non_terminals.contains(&left),
-                    format!("The rule's left part: {} is in non-terminal set", left)
+                    format!("The rule's left part: {} is not exist in non-terminal set", left)
                 );
                 let mut right: $crate::HashSet<$crate::Symbol> = $crate::HashSet::new();
                 $(
                     let symbol = $crate::Symbol::intern($t_right);
                     assert!(
                         terminals.contains(&symbol),
-                        format!("The rule's left part: {} is in non-terminal set", left)
+                        format!("The rule's left part: {} is not exist in non-terminal set", left)
                     );
                     right.insert(symbol);
                 )*
