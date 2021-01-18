@@ -13,12 +13,16 @@ macro_rules! cnf_grammar {
         TerminalRules[$($t_left:literal => [$($t_right:literal),+ $(,)?]),+ $(,)?]
     ) => {
         {
-            let start_terminal = $crate::Symbol::intern($start);
-
             let mut non_terminals: $crate::HashSet<$crate::Symbol> = $crate::HashSet::new();
             $(
                 non_terminals.insert($crate::Symbol::intern($non_terminal));
             )*
+
+            let start_terminal = $crate::Symbol::intern($start);
+            assert!(
+                non_terminals.contains(&start_terminal),
+                format!("Start:{} is not exist in non-terminals set", start_terminal)
+            );
 
             let mut terminals: $crate::HashSet<$crate::Symbol> = $crate::HashSet::new();
             $(
