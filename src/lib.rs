@@ -58,7 +58,7 @@ impl<'a, G: Grammar + Debug + Clone> StringReader<'a, G> {
         }
     }
 
-    pub fn recognize(&mut self, string: &'a str) -> Result<Node, Vec<Diagnostic>> {
+    pub fn recognize(&mut self, string: &'a str) -> Result<&Node, Vec<Diagnostic>> {
         self.src = string;
         self.chars = string.chars().collect();
         self.slices = HashMap::new();

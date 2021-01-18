@@ -168,9 +168,9 @@ impl Cell {
         Cell(nodes, span)
     }
 
-    pub fn nth(&self, n: usize) -> Option<Node> {
+    pub fn nth(&self, n: usize) -> Option<&Node> {
         match self.0.get(n) {
-            Some(node) => Some(node.clone()),
+            Some(node) => Some(node),
             None => None,
         }
     }
@@ -202,9 +202,9 @@ impl Cell {
         self.0.push(node)
     }
 
-    pub fn has(&self, symbol: Symbol) -> Option<Node> {
+    pub fn has(&self, symbol: Symbol) -> Option<&Node> {
         match self.0.iter().find(|node| node.kind.eq(&symbol)) {
-            Some(node) => Some(node.clone()),
+            Some(node) => Some(node),
             None => None,
         }
     }
