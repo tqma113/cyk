@@ -27,6 +27,7 @@ macro_rules! cnf_grammar {
                     !non_terminals.contains(&symbol),
                     format!("Non-terminal:{} has already exist in terminal set.", symbol)
                 );
+
                 terminals.insert(symbol);
             )*
 
@@ -37,20 +38,24 @@ macro_rules! cnf_grammar {
                     non_terminals.contains(&left),
                     format!("The rule's left part: {} is not exist in non-terminals", left)
                 );
+
                 let mut right: $crate::HashSet<$crate::RuleRight> = $crate::HashSet::new();
                 $(
                     let first = $crate::Symbol::intern($first);
-                    let second = $crate::Symbol::intern($second);
                     assert!(
                         terminals.contains(&first) || non_terminals.contains(&first),
                         format!("The rule's first part: {} is not exist in non-terminal or terminal set", first)
                     );
+
+                    let second = $crate::Symbol::intern($second);
                     assert!(
                         terminals.contains(&second) || non_terminals.contains(&second),
                         format!("The rule's second part: {} is not exist in non-terminal or terminal set", second)
                     );
+
                     right.insert($crate::RuleRight::new(first, second));
                 )*
+
                 rules.insert(left, right);
             )*
 
@@ -61,15 +66,17 @@ macro_rules! cnf_grammar {
                     non_terminals.contains(&left),
                     format!("The rule's left part: {} is not exist in non-terminal set", left)
                 );
+
                 let mut right: $crate::HashSet<$crate::Symbol> = $crate::HashSet::new();
                 $(
                     let symbol = $crate::Symbol::intern($t_right);
                     assert!(
                         terminals.contains(&symbol),
-                        format!("The rule's left part: {} is not exist in non-terminal set", left)
+                        format!("The rule's left part: {} is not exist in terminal set", symbol)
                     );
                     right.insert(symbol);
                 )*
+
                 terminal_rules.insert(left, right);
             )*
 
