@@ -80,7 +80,7 @@ impl Rule {
             result.push(branch.0)
         }
 
-        if result.len() > 0 {
+        if !result.is_empty() {
             Some(result)
         } else {
             None
@@ -96,7 +96,7 @@ impl Rule {
             }
         }
 
-        if result.len() > 0 {
+        if !result.is_empty() {
             Some(result)
         } else {
             None
@@ -128,6 +128,12 @@ impl Rule {
 #[derive(Debug, Clone)]
 pub struct Rules(Vec<Rule>);
 
+impl Default for Rules {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Rules {
     pub fn new() -> Self {
         let rules: Vec<Rule> = vec![];
@@ -149,7 +155,7 @@ impl Rules {
             }
         }
 
-        if result.len() > 0 {
+        if !result.is_empty() {
             Some(result)
         } else {
             None
@@ -165,7 +171,7 @@ impl Rules {
             }
         }
 
-        if result.len() > 0 {
+        if !result.is_empty() {
             Some(result)
         } else {
             None
@@ -181,7 +187,7 @@ impl Rules {
             }
         }
 
-        if result.len() > 0 {
+        if !result.is_empty() {
             Some(result)
         } else {
             None
@@ -211,6 +217,12 @@ impl TerminalRule {
 #[derive(Debug, Clone)]
 pub struct TerminalRules(Vec<TerminalRule>);
 
+impl Default for TerminalRules {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TerminalRules {
     pub fn new() -> Self {
         let rules: Vec<TerminalRule> = vec![];
@@ -230,7 +242,7 @@ impl TerminalRules {
             }
         }
 
-        if result.len() > 0 {
+        if !result.is_empty() {
             Some(result)
         } else {
             None

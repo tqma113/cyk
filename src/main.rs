@@ -75,7 +75,7 @@ fn main() {
     };
     println!("{:?}", grammar);
     let mut reader = cyk::StringReader::new(&grammar);
-    match reader.recognize("323234234234234234242342342342349.2342234234234232342344234342345e+123423422342342342423423423423434") {
+    match reader.recognize("12345678901234567890.12345678901234567890e+12345678901234567890") {
         Ok(node) => {
             println!("Ok: {:?}", node);
             println!("Ok: {}", node);

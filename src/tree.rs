@@ -4,18 +4,12 @@ use std::cmp::{Ord, Ordering};
 use std::fmt;
 use std::fmt::Debug;
 
-#[derive(Copy, Clone, Debug, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Span(usize, usize);
 
 impl Span {
     pub fn new(start: usize, len: usize) -> Self {
         Span(start, len)
-    }
-
-    pub fn from_both(a: Span, b: Span) -> Self {
-        let start = std::cmp::min(a.start(), b.start());
-        let end = std::cmp::max(a.end(), b.end());
-        Span::new(start, end - start)
     }
 
     pub fn as_str(self) -> &'static str {
@@ -55,14 +49,6 @@ impl PartialOrd for Span {
     }
 }
 
-impl PartialEq for Span {
-    fn eq(&self, other: &Self) -> bool {
-        (self.0, &self.1) == (other.0, &other.1)
-    }
-}
-
-impl Eq for Span {}
-
 #[derive(Debug, Clone)]
 pub enum NodeChildren {
     None,
@@ -85,7 +71,14 @@ impl PartialEq for Node {
 
 impl fmt::Display for Node {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.to_string())
+        write!(f, "{}", match self.clone().children() {
+            NodeChildren::Double(children) => {
+                let (left, right) = children.as_ref();
+                format!("{}{}", left, right)
+            }
+            NodeChildren::Single(child) => format!("{}", child.as_ref()),
+            NodeChildren::None => format!("{}", self.clone().kind()),
+        })
     }
 }
 
@@ -118,17 +111,6 @@ impl Node {
 
     pub fn children(self) -> NodeChildren {
         self.children
-    }
-
-    pub fn to_string(&self) -> String {
-        match self.clone().children() {
-            NodeChildren::Double(children) => {
-                let (left, right) = children.as_ref();
-                format!("{}{}", left, right)
-            }
-            NodeChildren::Single(child) => format!("{}", child.as_ref()),
-            NodeChildren::None => format!("{}", self.clone().kind()),
-        }
     }
 }
 
@@ -182,17 +164,13 @@ macro_rules! cell {
         Cell::new(vec::from_elem($elem, $n))
     );
     ($($x:expr),+ $(,)?; $span:expr) => (
-        <Cell>::into_vec(Box::new([$($x),+]), $span)
+        <Cell>::new([$($x),+].to_vec(), $span)
     );
 }
 
 impl Cell {
     pub fn new(nodes: Vec<Node>, span: Span) -> Self {
         Cell(nodes, span)
-    }
-
-    pub fn into_vec(b: Box<[Node]>, span: Span) -> Self {
-        Cell(b.to_vec(), span)
     }
 
     pub fn nth(self, n: usize) -> Option<Node> {
@@ -213,6 +191,8 @@ impl Cell {
         self.0.len()
     }
 
+    pub fn is_empty(&self) -> bool { self.0.is_empty() }
+
     pub fn append(&mut self, mut another: Cell) {
         self.0.append(another.0.as_mut())
     }
@@ -227,16 +207,5 @@ impl Cell {
 
     pub fn has(&self, symbol: Symbol) -> Option<&Node> {
         self.0.iter().find(|node| node.kind.eq(&symbol))
-    }
-
-    pub fn from_char(c: char, start: usize) -> Cell {
-        let span = Span::new(start, 1);
-        match Symbol::from_char(c) {
-            Some(symbol) => cell![Node::new(symbol, span, NodeChildren::None); span],
-            None => {
-                assert!(false, format!("Unknown char:{} at {}", c, start));
-                cell![;span]
-            }
-        }
     }
 }

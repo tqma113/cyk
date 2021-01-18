@@ -13,7 +13,7 @@ use std::fmt::Debug;
 
 fn rest_span(span: Span, len: usize) -> Option<Span> {
     if span.len() >= len {
-        return None;
+        None
     } else {
         Some(Span::new(span.start() + span.len(), len - span.len()))
     }
@@ -86,10 +86,10 @@ impl<'a, G: Grammar + Debug + Clone> StringReader<'a, G> {
                 let start = span.start();
                 let c = *self.chars.get(start).unwrap();
                 let cell = self.clone().derive_char(span, c);
-                if cell.clone().len() == 0 {
+                if cell.is_empty() {
                     self.add_unknown(c, span)
                 } else {
-                    self.add_cell(cell.clone(), span)
+                    self.add_cell(cell, span)
                 }
             }
             _ => {
@@ -113,9 +113,8 @@ impl<'a, G: Grammar + Debug + Clone> StringReader<'a, G> {
 
                 cell_list.sort();
 
-                match cell_list.last() {
-                    Some(cell) => self.add_cell(cell.clone(), span),
-                    None => {}
+                if let Some(cell) = cell_list.last() {
+                    self.add_cell(cell.clone(), span)
                 }
             }
         }
@@ -124,20 +123,17 @@ impl<'a, G: Grammar + Debug + Clone> StringReader<'a, G> {
     fn derive_char(self, span: Span, c: char) -> Cell {
         let next_cell = &mut cell![;span];
 
-        match Symbol::from_char(c) {
-            Some(symbol) => {
-                if let Some(symbols) = self.grammar.clone().derive_single(symbol) {
-                    let node = Node::new(symbol, span, NodeChildren::None);
-                    for symbol in symbols {
-                        next_cell.push_nodes(Node::new(
-                            symbol,
-                            span,
-                            NodeChildren::Single(Box::new(node.clone())),
-                        ))
-                    }
+        if let Some(symbol) = Symbol::from_char(c) {
+            if let Some(symbols) = self.grammar.clone().derive_single(symbol) {
+                let node = Node::new(symbol, span, NodeChildren::None);
+                for symbol in symbols {
+                    next_cell.push_nodes(Node::new(
+                        symbol,
+                        span,
+                        NodeChildren::Single(Box::new(node.clone())),
+                    ))
                 }
             }
-            None => {}
         }
 
         next_cell.clone()
@@ -168,7 +164,7 @@ impl<'a, G: Grammar + Debug + Clone> StringReader<'a, G> {
             }
         }
 
-        if next_cell.clone().len() > 0 {
+        if !next_cell.is_empty() {
             Some(next_cell.clone())
         } else {
             None

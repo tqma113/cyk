@@ -52,10 +52,7 @@ pub struct Interner {
 
 impl Interner {
     pub fn exist(&mut self, string: &str) -> bool {
-        match self.names.get(string) {
-            Some(_) => true,
-            None => false,
-        }
+        self.names.get(string).is_some()
     }
 
     pub fn get(&mut self, string: &str) -> Option<Symbol> {
@@ -86,6 +83,12 @@ impl Interner {
 
 pub struct SessionGlobals {
     symbol_interner: std::cell::RefCell<Interner>,
+}
+
+impl Default for SessionGlobals {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl SessionGlobals {
