@@ -4,7 +4,8 @@ use super::Grammar;
 #[macro_export]
 macro_rules! cnf_grammar {
     (
-        Start($start:literal);NonTerminals[$($non_terminal:literal),+ $(,)?];
+        Start($start:literal);
+        NonTerminals[$($non_terminal:literal),+ $(,)?];
         Terminals[$($terminal:literal),+ $(,)?];
         Rules[$($left:literal => [$([$first:literal,$second:literal]),+ $(,)?]),+ $(,)?];
         TerminalRules[$($t_left:literal => [$($t_right:literal),+ $(,)?]),+ $(,)?]
