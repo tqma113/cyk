@@ -19,11 +19,11 @@ fn main() {
         // Digit -> 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
         // Sign -> + | -
         Start("Number");
-        NonTerminals[
+        NonTerminals [
             "Number", "N1", "Integer", "Fraction",
             "T1", "Scale", "N2", "T2", "Digit", "Sign"
         ];
-        Terminals[
+        Terminals [
             "0", "1", "2", "3", "4", "5", "6",
             "7", "8", "9", ".", "e", "+", "-"
         ];
@@ -75,7 +75,7 @@ fn main() {
     };
     println!("{:?}", grammar);
     let mut reader = cyk::StringReader::new(&grammar);
-    match reader.recognize("3.51e+1") {
+    match reader.parse("3.51e+1") {
         Ok(node) => {
             println!("Ok: {:?}", node);
             println!("Ok: {}", node);

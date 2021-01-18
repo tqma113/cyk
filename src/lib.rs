@@ -58,7 +58,7 @@ impl<'a, G: Grammar + Debug + Clone> StringReader<'a, G> {
         }
     }
 
-    pub fn recognize(&mut self, string: &'a str) -> Result<&Node, Vec<Diagnostic>> {
+    pub fn parse(&mut self, string: &'a str) -> Result<&Node, Vec<Diagnostic>> {
         self.src = string;
         self.chars = string.chars().collect();
         self.slices = HashMap::new();
@@ -67,7 +67,7 @@ impl<'a, G: Grammar + Debug + Clone> StringReader<'a, G> {
         let src_len = self.src_len();
         for len in 1..(src_len + 1) {
             for span in self.spans_from_len(len) {
-                self.recognize_span(span);
+                self.parse_span(span);
             }
         }
 
@@ -80,7 +80,7 @@ impl<'a, G: Grammar + Debug + Clone> StringReader<'a, G> {
         }
     }
 
-    fn recognize_span(&mut self, span: Span) {
+    fn parse_span(&mut self, span: Span) {
         match span.len() {
             1 => {
                 let start = span.start();
@@ -276,7 +276,7 @@ mod test {
             ]
         };
         let mut reader = StringReader::new(&grammar);
-        let result = reader.recognize("3.51e+1");
+        let result = reader.parse("3.51e+1");
         if let Ok(node) = result {
             assert_eq!(format!("{}", node), "3.51e+1");
         } else {
@@ -357,7 +357,7 @@ mod test {
             ]
         };
         let mut reader = StringReader::new(&grammar);
-        let result = reader.recognize("3800909090.590900901e+1231231321");
+        let result = reader.parse("3800909090.590900901e+1231231321");
         if let Ok(node) = result {
             assert_eq!(format!("{}", node), "3800909090.590900901e+1231231321");
         } else {
@@ -439,7 +439,7 @@ mod test {
         };
         println!("{:?}", grammar);
         let mut reader = StringReader::new(&grammar);
-        match reader.recognize("12345678901234567890123456789012345678901234567890123456789012345678901234567890.12345678901234567890123456789012345678901234567890123456789012345678901234567890e+12345678901234567890123456789012345678901234567890123456789012345678901234567890") {
+        match reader.parse("12345678901234567890123456789012345678901234567890123456789012345678901234567890.12345678901234567890123456789012345678901234567890123456789012345678901234567890e+12345678901234567890123456789012345678901234567890123456789012345678901234567890") {
             Ok(node) => {
                 assert_eq!(format!("{}", node), "12345678901234567890123456789012345678901234567890123456789012345678901234567890.12345678901234567890123456789012345678901234567890123456789012345678901234567890e+12345678901234567890123456789012345678901234567890123456789012345678901234567890");
             }
