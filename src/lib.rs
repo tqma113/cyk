@@ -73,7 +73,7 @@ impl<'a, G: Grammar + Debug + Clone> StringReader<'a, G> {
 
         match self.get_cell(Span::new(0, src_len)) {
             Some(cell) => match cell.clone().has(self.grammar.clone().start_symbol()) {
-                Some(node) => Ok(node.clone()),
+                Some(node) => Ok(node),
                 None => Err(self.unknowns.clone()),
             },
             None => Err(self.unknowns.clone()),
@@ -121,26 +121,25 @@ impl<'a, G: Grammar + Debug + Clone> StringReader<'a, G> {
     }
 
     fn derive_char(self, span: Span, c: char) -> Cell {
-        let next_cell = &mut cell![;span];
+        let mut next_cell = cell![;span];
 
         if let Some(symbol) = Symbol::from_char(c) {
             if let Some(symbols) = self.grammar.clone().derive_single(symbol) {
-                let node = Node::new(symbol, span, NodeChildren::None);
-                for symbol in symbols {
+                for sym in symbols {
                     next_cell.push_nodes(Node::new(
-                        symbol,
+                        sym,
                         span,
-                        NodeChildren::Single(Box::new(node.clone())),
+                        NodeChildren::Single(Box::new(Node::new(symbol, span, NodeChildren::None))),
                     ))
                 }
             }
         }
 
-        next_cell.clone()
+        next_cell
     }
 
     fn derive(self, span: Span, base: &Cell, suffix: &Cell) -> Option<Cell> {
-        let next_cell = &mut cell![;span];
+        let mut next_cell = cell![;span];
 
         for cur in &base.0 {
             for suffix in &suffix.0 {
@@ -155,7 +154,7 @@ impl<'a, G: Grammar + Debug + Clone> StringReader<'a, G> {
                                 next_cell.push_nodes(Node::new(
                                     symbol,
                                     span,
-                                    NodeChildren::Double(Box::new((cur.clone(), suffix.clone()))),
+                                    NodeChildren::Double(Box::new(cur.clone()), Box::new(suffix.clone())),
                                 ))
                             }
                         }
@@ -165,7 +164,7 @@ impl<'a, G: Grammar + Debug + Clone> StringReader<'a, G> {
         }
 
         if !next_cell.is_empty() {
-            Some(next_cell.clone())
+            Some(next_cell)
         } else {
             None
         }

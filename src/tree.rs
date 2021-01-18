@@ -53,7 +53,7 @@ impl PartialOrd for Span {
 pub enum NodeChildren {
     None,
     Single(Box<Node>),
-    Double(Box<(Node, Node)>),
+    Double(Box<Node>, Box<Node>),
 }
 
 #[derive(Clone)]
@@ -72,8 +72,7 @@ impl PartialEq for Node {
 impl fmt::Display for Node {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", match self.clone().children() {
-            NodeChildren::Double(children) => {
-                let (left, right) = children.as_ref();
+            NodeChildren::Double(left, right) => {
                 format!("{}{}", left, right)
             }
             NodeChildren::Single(child) => format!("{}", child.as_ref()),
@@ -205,7 +204,10 @@ impl Cell {
         self.0.push(node)
     }
 
-    pub fn has(&self, symbol: Symbol) -> Option<&Node> {
-        self.0.iter().find(|node| node.kind.eq(&symbol))
+    pub fn has(&self, symbol: Symbol) -> Option<Node> {
+        match self.0.iter().find(|node| node.kind.eq(&symbol)) {
+            Some(node) => Some(node.clone()),
+            None => None
+        }
     }
 }
