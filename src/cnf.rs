@@ -47,14 +47,14 @@ macro_rules! cnf_grammar {
                 $(
                     let first = $crate::Symbol::intern($first);
                     assert!(
-                        terminals.contains(&first) || non_terminals.contains(&first),
-                        format!("The rule's first part: {} is not exist in non-terminal or terminal set", first)
+                        non_terminals.contains(&first),
+                        format!("The rule's first part: {} is not exist in non-terminal set", first)
                     );
 
                     let second = $crate::Symbol::intern($second);
                     assert!(
-                        terminals.contains(&second) || non_terminals.contains(&second),
-                        format!("The rule's second part: {} is not exist in non-terminal or terminal set", second)
+                        non_terminals.contains(&second),
+                        format!("The rule's second part: {} is not exist in non-terminal set", second)
                     );
 
                     right.insert($crate::RuleRight::new(first, second));
