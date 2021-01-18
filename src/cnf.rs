@@ -1,6 +1,8 @@
 use super::symbol::*;
 use super::Grammar;
 
+pub use std::collections::HashSet;
+
 #[macro_export]
 macro_rules! cnf_grammar {
     (
@@ -13,21 +15,26 @@ macro_rules! cnf_grammar {
         {
             let start_terminal = $crate::Symbol::intern($start);
 
-            let mut non_terminals: Vec<$crate::Symbol> = vec![];
+            let mut non_terminals: $crate::HashSet<$crate::Symbol> = $crate::HashSet::new();
             $(
-                non_terminals.push($crate::Symbol::intern($non_terminal));
+                non_terminals.insert($crate::Symbol::intern($non_terminal));
             )*
 
-            let mut terminals: Vec<$crate::Symbol> = vec![];
+            let mut terminals: $crate::HashSet<$crate::Symbol> = $crate::HashSet::new();
             $(
-                terminals.push($crate::Symbol::intern($terminal));
+                let symbol = $crate::Symbol::intern($terminal);
+                assert!(
+                    !non_terminals.contains(&symbol),
+                    format!("Non-terminal:{} has already exist in terminal set.", symbol)
+                );
+                terminals.insert(symbol);
             )*
 
             let mut rules = $crate::Rules::new();
             $(
                 let left = $crate::Symbol::intern($left);
                 assert!(
-                    non_terminals.iter().any(|&symbol| symbol == left),
+                    non_terminals.contains(&left),
                     format!("The rule's left part: {} is in non-terminals", left)
                 );
                 let mut right: Vec<$crate::RuleRight> = vec![];
@@ -254,8 +261,8 @@ impl TerminalRules {
 #[derive(Debug, Clone)]
 pub struct CNF {
     start: Symbol,
-    terminals: Vec<Symbol>,
-    non_terminals: Vec<Symbol>,
+    terminals: HashSet<Symbol>,
+    non_terminals: HashSet<Symbol>,
     rules: Rules,
     terminal_rules: TerminalRules,
 }
@@ -263,8 +270,8 @@ pub struct CNF {
 impl CNF {
     pub fn new(
         start: Symbol,
-        terminals: Vec<Symbol>,
-        non_terminals: Vec<Symbol>,
+        terminals: HashSet<Symbol>,
+        non_terminals: HashSet<Symbol>,
         rules: Rules,
         terminal_rules: TerminalRules,
     ) -> Self {

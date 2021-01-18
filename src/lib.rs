@@ -100,7 +100,8 @@ impl<'a, G: Grammar + Debug + Clone> StringReader<'a, G> {
                         if let Some(base_span) = base_cell.span() {
                             if let Some(rest_span) = rest_span(base_span, span.len()) {
                                 if let Some(rest_cell) = self.get_cell(rest_span) {
-                                    if let Some(next_cell) = self.derive(span, &base_cell, &rest_cell)
+                                    if let Some(next_cell) =
+                                        self.derive(span, &base_cell, &rest_cell)
                                     {
                                         cell_list.push(next_cell);
                                     }
@@ -361,6 +362,90 @@ mod test {
             assert_eq!(format!("{}", node), "3800909090.590900901e+1231231321");
         } else {
             panic!("Error")
+        }
+    }
+
+    #[test]
+    fn it_work_with_long() {
+        let grammar = cnf_grammar! {
+            // 3.51e+1
+            // Number -> 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+            // Number -> Integer Digit
+            // Number -> N1 Scale’ | Integer Fraction
+            // N1 -> Integer Fraction
+            // Integer -> 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+            // Integer -> Integer Digit
+            // Fraction -> T1 Integer
+            // T1 -> .
+            // Scale’ -> N2 Integer
+            // N2 -> T2 Sign
+            // T2 -> e
+            // Digit -> 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+            // Sign -> + | -
+            Start("Number");
+            NonTerminals[
+                "Number", "N1", "Integer", "Fraction",
+                "T1", "Scale", "N2", "T2", "Digit", "Sign"
+            ];
+            Terminals[
+                "0", "1", "2", "3", "4", "5", "6",
+                "7", "8", "9", ".", "e", "+", "-"
+            ];
+            Rules [
+                "Number" => [
+                    ["Integer", "Digit"],
+                    ["N1", "Scale"],
+                    ["Integer", "Fraction"]
+                ],
+                "N1" => [
+                    ["Integer", "Fraction"]
+                ],
+                "Integer" => [
+                    ["Integer", "Digit"]
+                ],
+                "Fraction" => [
+                    ["T1", "Integer"]
+                ],
+                "Scale" => [
+                    ["N2", "Integer"]
+                ],
+                "N2" => [
+                    ["T2", "Sign"]
+                ],
+            ];
+            TerminalRules [
+                "Number" => [
+                    "0", "1", "2","3", "4", "5",
+                    "6", "7", "8", "9",
+                ],
+                "Integer" => [
+                    "0", "1", "2","3", "4", "5",
+                    "6", "7", "8", "9",
+                ],
+                "T1" => [
+                    "."
+                ],
+                "T2" => [
+                    "e"
+                ],
+                "Digit" => [
+                    "0", "1", "2","3", "4", "5",
+                    "6", "7", "8", "9",
+                ],
+                "Sign" => [
+                    "+", "-"
+                ]
+            ]
+        };
+        println!("{:?}", grammar);
+        let mut reader = StringReader::new(&grammar);
+        match reader.recognize("12345678901234567890123456789012345678901234567890123456789012345678901234567890.12345678901234567890123456789012345678901234567890123456789012345678901234567890e+12345678901234567890123456789012345678901234567890123456789012345678901234567890") {
+            Ok(node) => {
+                assert_eq!(format!("{}", node), "12345678901234567890123456789012345678901234567890123456789012345678901234567890.12345678901234567890123456789012345678901234567890123456789012345678901234567890e+12345678901234567890123456789012345678901234567890123456789012345678901234567890");
+            }
+            Err(unknowns) => {
+                panic!("Error")
+            },
         }
     }
 }
