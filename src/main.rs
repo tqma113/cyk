@@ -74,8 +74,8 @@ fn main() {
         ]
     };
     println!("{:?}", grammar);
-    let mut reader = cyk::StringReader::new(&grammar);
-    match reader.parse("3.51e+1") {
+    let mut parser = cyk::Parser::new(&grammar);
+    match parser.parse("3.51e+1") {
         Ok(node) => {
             println!("Ok: {:?}", node);
             println!("Ok: {}", node);

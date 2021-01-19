@@ -38,7 +38,7 @@ pub trait Grammar {
 }
 
 #[derive(Clone, Debug)]
-pub struct StringReader<'a, G> {
+pub struct Parser<'a, G> {
     grammar: &'a G,
     src: &'a str,
     chars: Vec<char>,
@@ -47,9 +47,9 @@ pub struct StringReader<'a, G> {
     unknowns: Vec<Diagnostic>,
 }
 
-impl<'a, G: Grammar + Debug + Clone> StringReader<'a, G> {
+impl<'a, G: Grammar + Debug + Clone> Parser<'a, G> {
     pub fn new(grammar: &'a G) -> Self {
-        StringReader {
+        Parser {
             grammar,
             src: "",
             chars: "".chars().collect(),
@@ -275,7 +275,7 @@ mod test {
                 ]
             ]
         };
-        let mut reader = StringReader::new(&grammar);
+        let mut reader = Parser::new(&grammar);
         let result = reader.parse("3.51e+1");
         if let Ok(node) = result {
             assert_eq!(format!("{}", node), "3.51e+1");
@@ -356,7 +356,7 @@ mod test {
                 ]
             ]
         };
-        let mut reader = StringReader::new(&grammar);
+        let mut reader = Parser::new(&grammar);
         let result = reader.parse("3800909090.590900901e+1231231321");
         if let Ok(node) = result {
             assert_eq!(format!("{}", node), "3800909090.590900901e+1231231321");
@@ -438,7 +438,7 @@ mod test {
             ]
         };
         println!("{:?}", grammar);
-        let mut reader = StringReader::new(&grammar);
+        let mut reader = Parser::new(&grammar);
         match reader.parse("12345678901234567890123456789012345678901234567890123456789012345678901234567890.12345678901234567890123456789012345678901234567890123456789012345678901234567890e+12345678901234567890123456789012345678901234567890123456789012345678901234567890") {
             Ok(node) => {
                 assert_eq!(format!("{}", node), "12345678901234567890123456789012345678901234567890123456789012345678901234567890.12345678901234567890123456789012345678901234567890123456789012345678901234567890e+12345678901234567890123456789012345678901234567890123456789012345678901234567890");
