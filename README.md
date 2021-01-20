@@ -1,5 +1,7 @@
 # cyk
 
+Detail in 4.2 of Parsing Technique.
+
 O(n^3)
 
 For Chomsky Normal Form.
